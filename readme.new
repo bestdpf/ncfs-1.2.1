@@ -1,0 +1,17 @@
+1
+install libfuse as the original doc said
+on Ubuntu apt-get install libfuse-dev
+on Fedora yum install libfuse-devel
+
+2
+make it just type
+make
+2
+run the script 
+./server.sh
+to run the filesystem server
+3
+run the script
+./gui.sh
+to run the java gui
+

@@ -10,7 +10,7 @@
 			<TotalDiskNumber>4</TotalDiskNumber>
 			<DataDiskNumber>3</DataDiskNumber>
 			<BlockSize>4096</BlockSize>
-			<RaidType>5</RaidType>
+			<RaidType>6</RaidType>
 			<OperationMode>0</OperationMode>
 			<Src>
 				<SrcF>2</SrcF>

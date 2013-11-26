@@ -17,6 +17,14 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
+
 /*
  * constructor for raid6(rs,origin version).
  */
@@ -178,7 +186,7 @@ struct data_block_info Coding4Raid6::encode(const char* buf, int size)
         //implement disk write algorithm here.
         //here use raid6: stripped block allocation plus distributed parity and distributed RS code.
 
-	printf("You get in, the size is %d!\n",size);
+	printf("You get in, the size is ----------------------------------------------------------------------------------%d!\n",size);
 	
         for (i=0; i < disk_total_num; i++){
                 //mark blocks of code_disk and parity_disk
@@ -634,7 +642,7 @@ int Coding4Raid6::decode(int disk_id, char* buf, long long size, long long offse
                                                         return -1;
                                                 }
 
-                                                if (NCFS_DATA->run_experiment == 1)cks();{
+                                                if (NCFS_DATA->run_experiment == 1){
                                                     t1 = getticks();
                                                 }
 

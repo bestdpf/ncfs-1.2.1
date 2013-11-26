@@ -18,7 +18,6 @@
 //#include <stdio.h>
 
 #define MAX_VECTOR_LEN 50
-#include<sys/time.h>
 typedef unsigned long long ticks;
 
 struct ncfs_state {
@@ -141,13 +140,4 @@ struct circular_buffer {
 	char* circular_buffer_area;//circular buffer area
 };
 
-
-ticks getticks(void);
-{
-    unsigned a, d;
-    asm("cpuid");
-    asm volatile("rdtsc" : "=a" (a), "=d" (d));
-
-    return (((ticks)a) | (((ticks)d) << 32));
-}
 #endif

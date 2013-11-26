@@ -23,6 +23,14 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
+
 /*
  * Constructor funcation for MBR
  *
@@ -336,7 +344,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 			}
 
 			if (NCFS_DATA->run_experiment == 1){
-                t3 = getticks()
+                t3 = getticks();
 
                 NCFS_DATA->diskread_ticks += (t2 - t1);
                 NCFS_DATA->encoding_ticks += (t3 - t2);

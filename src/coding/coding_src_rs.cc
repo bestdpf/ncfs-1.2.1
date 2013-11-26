@@ -31,6 +31,14 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
+
 /*
  * Constructor for Reed Solomon
  */

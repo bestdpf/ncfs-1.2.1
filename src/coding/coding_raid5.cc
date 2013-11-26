@@ -17,6 +17,13 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
 /*
  * raid5_encoding: RAID 5: fault tolerance by stripped parity (type=5)
  * 
@@ -107,6 +114,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
                 if (NCFS_DATA->run_experiment == 1){
                     t1 = getticks();
                 }
+		printf("-----------------%llu\n", t1);
 
 		//Cache Start
 		retstat = cacheLayer->readDisk(disk_id,buf2,size_request,block_no*block_size);
@@ -178,6 +186,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		//end ncfs 0.11 michael
 
 		if (NCFS_DATA->run_experiment == 1){
+			printf("--------------------------------------5---------------------------------\n");
 
 			//Disk Read Time
                         NCFS_DATA->diskread_ticks += (t2 - t1);
@@ -223,6 +232,7 @@ int Coding4Raid5::decode(int disk_id, char* buf, long long size, long long offse
                 if (NCFS_DATA->run_experiment == 1){
                     t1 = getticks();
                 }
+		printf("-----------------%llu\n", t1);
 
 		retstat = cacheLayer->readDisk(disk_id,buf,size,offset);
 

@@ -89,17 +89,6 @@ char *bigreadpath;
 long bigreadoffset;
 int bigreadsize;
 
-#include<sys/time.h>
-typedef unsigned long long ticks;
-
-static __inline__ ticks getticks(void)
-{
-     unsigned a, d;
-     asm("cpuid");
-     asm volatile("rdtsc" : "=a" (a), "=d" (d));
-
-     return (((ticks)a) | (((ticks)d) << 32));
-}
 // Report errors and give -errno to caller
 int ncfs_error(const char *str)
 {
@@ -886,6 +875,10 @@ int ncfs_release(const char *path, struct fuse_file_info *fi)
 
         FILE *time_file;
 
+        printf("Encoding ticks: %llu\n",NCFS_DATA->encoding_ticks);
+        printf("Decoding ticks: %llu\n",NCFS_DATA->decoding_ticks);
+        printf("Disk Read ticks: %llu\n",NCFS_DATA->diskread_ticks);
+        printf("Disk Write ticks: %llu\n",NCFS_DATA->diskwrite_ticks);
         printf("Encoding time: %lf\n",(double)(NCFS_DATA->encoding_ticks / 1799999));
         printf("Decoding time: %lf\n",(double)(NCFS_DATA->decoding_ticks / 1799999));
         printf("Disk Read time: %lf\n",(double)(NCFS_DATA->diskread_ticks / 1799999));
@@ -1209,6 +1202,10 @@ void ncfs_destroy(void *userdata)
 
 	FILE *time_file;
 
+        printf("Encoding ticks: %llu\n",NCFS_DATA->encoding_ticks);
+        printf("Decoding ticks: %llu\n",NCFS_DATA->decoding_ticks);
+        printf("Disk Read ticks: %llu\n",NCFS_DATA->diskread_ticks);
+        printf("Disk Write ticks: %llu\n",NCFS_DATA->diskwrite_ticks);
         printf("Encoding time: %lf\n",(double)(NCFS_DATA->encoding_ticks / 1799999));
         printf("Decoding time: %lf\n",(double)(NCFS_DATA->decoding_ticks / 1799999));
         printf("Disk Read time: %lf\n",(double)(NCFS_DATA->diskread_ticks / 1799999));
@@ -1494,7 +1491,7 @@ int main(int argc, char *argv[])
 	//start ncfs
 	ncfs_data->no_cache = 0;
 	ncfs_data->no_gui = 0;
-	ncfs_data->run_experiment = 0;
+	ncfs_data->run_experiment = 1;
 	ncfs_data->usebigblock = 0;
 
 	ncfs_data->process_state = 0;
@@ -1510,6 +1507,10 @@ int main(int argc, char *argv[])
 	ncfs_data->space_list_num = 0;	//for deletion
 	ncfs_data->space_list_head = NULL;
 
+	printf("***main: disk_total_num=%d, data_disk_num=%d, block_size=%d, raid_type=%d,space_list_num=%d, no_cache=%d, no_gui=%d, run=%d\n",
+			ncfs_data->disk_total_num, ncfs_data->data_disk_num, ncfs_data->disk_block_size,
+			ncfs_data->disk_raid_type, ncfs_data->space_list_num, ncfs_data->no_cache,
+			ncfs_data->no_gui, ncfs_data->run_experiment);
 	fileSystemLayer->readSystemConfig(ncfs_data);
 	//	fileSystemLayer->get_raid_setting(ncfs_data);
 
@@ -1535,10 +1536,10 @@ int main(int argc, char *argv[])
 	fileSystemLayer->get_operation_mode(ncfs_data);	//added in version 0.8
 
 	//test print
-	printf("***main: disk_total_num=%d, data_disk_num=%d, block_size=%d, raid_type=%d,space_list_num=%d, no_cache=%d, no_gui=%d\n",
+	printf("***main: disk_total_num=%d, data_disk_num=%d, block_size=%d, raid_type=%d,space_list_num=%d, no_cache=%d, no_gui=%d, run=%d\n",
 			ncfs_data->disk_total_num, ncfs_data->data_disk_num, ncfs_data->disk_block_size,
 			ncfs_data->disk_raid_type, ncfs_data->space_list_num, ncfs_data->no_cache,
-			ncfs_data->no_gui);
+			ncfs_data->no_gui, ncfs_data->run_experiment);
 	for (j=0; j<ncfs_data->disk_total_num; j++){
 		printf("***main: j=%d, dev=%s, free_offset=%d, free_size=%d\n",
 				j,ncfs_data->dev_name[j], ncfs_data->free_offset[j],ncfs_data->free_size[j]);

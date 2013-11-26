@@ -67,6 +67,7 @@ struct data_block_info Coding4Raid0::encode(const char* buf, int size)
 
 
 	//get block from space_list if no free block available
+	printf("afasdfadfsadfasfsfasdfasdf\n");
 	if (disk_id == -1){
 		//printf("***raid0: get_space_list: list_num=%d\n",NCFS_DATA->space_list_num);
 		if (NCFS_DATA->space_list_head != NULL){

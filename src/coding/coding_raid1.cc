@@ -17,6 +17,13 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+        unsigned a, d;
+            asm("cpuid");
+                asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+                    return (((ticks)a) | (((ticks)d) << 32));
+}
 /*
  * raid1_encoding: RAID 1: fault tolerance by mirror (type=1)
  *
@@ -35,6 +42,7 @@ struct data_block_info Coding4Raid1::encode(const char* buf, int size)
 	struct data_block_info block_written;
 	int i;
 	int mirror_disk_id;
+    ticks t1,t2;
 
 	//test print
 	//printf("***get_data_block_no 1: size=%d\n",size);
@@ -82,7 +90,10 @@ struct data_block_info Coding4Raid1::encode(const char* buf, int size)
 	}
 	else{
 		//Cache Start
+        t1 = getticks();
 		retstat = cacheLayer->writeDisk(disk_id,buf,size,block_no*block_size);
+        t2 = getticks();
+        NCFS_DATA->diskwrite_ticks += (t2 - t1);
 		//Cache End
 
 		NCFS_DATA->free_offset[disk_id] = block_no + block_request;
@@ -92,7 +103,10 @@ struct data_block_info Coding4Raid1::encode(const char* buf, int size)
 		//write data to mirror disk
 		mirror_disk_id = disk_total_num - disk_id - 1;
 		//Cache Start
+        t1 = getticks();
 		retstat = cacheLayer->writeDisk(mirror_disk_id,buf,size,block_no*block_size);
+        t2 = getticks();
+        NCFS_DATA->diskwrite_ticks += (t2 - t1);
 		//Cache End
 	}
 
@@ -116,12 +130,22 @@ struct data_block_info Coding4Raid1::encode(const char* buf, int size)
 int Coding4Raid1::decode(int disk_id, char* buf, long long size, long long offset)
 {
 
+    ticks t1,t2;
 	if(NCFS_DATA->disk_status[disk_id] == 0)
-		return cacheLayer->readDisk(disk_id,buf,size,offset);
+        t1 = getticks();
+		int tt = cacheLayer->readDisk(disk_id,buf,size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
+        return tt;
 	else {
 		int mirror_disk_id = NCFS_DATA->disk_total_num - disk_id - 1;
 		if(NCFS_DATA->disk_status[mirror_disk_id] == 0){
-			return cacheLayer->readDisk(mirror_disk_id,buf,size,offset);
+        t1 = getticks();
+		int tt = cacheLayer->readDisk(mirror_disk_id,buf,size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
+        return tt;
+        return tt;
 		} else {
 			printf("Raid 1 both disk %d and mirror disk %d\n",disk_id,mirror_disk_id);
 			return -1;

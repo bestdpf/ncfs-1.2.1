@@ -17,6 +17,13 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+        unsigned a, d;
+            asm("cpuid");
+                asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+                    return (((ticks)a) | (((ticks)d) << 32));
+}
 /*
  * raid4_encoding: RAID 4: fault tolerance by non-stripped parity (type=4)
  *
@@ -79,6 +86,7 @@ struct data_block_info Coding4Raid4::encode(const char* buf, int size)
 	}
 
 
+    ticks t1, t2, t3;
 	if (disk_id == -1){
 		printf("***get_data_block_no: ERROR disk_id = -1\n");
 	}
@@ -87,12 +95,18 @@ struct data_block_info Coding4Raid4::encode(const char* buf, int size)
 		buf_read = (char*)malloc(sizeof(char)*size_request);
 		buf2 = (char*)malloc(sizeof(char)*size_request);
 		//Cache Start
+        t1 = getticks();
 		retstat = cacheLayer->readDisk(disk_id,buf2,size_request,block_no*block_size);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
 		//Cache End
 		for (j=0; j < size_request; j++){
 			buf2[j] = buf2[j] ^ buf[j];
 		}
+        t1 = getticks();
 		retstat = cacheLayer->writeDisk(disk_id,buf,size,block_no*block_size);
+        t2 = getticks();
+        NCFS_DATA->diskwrite_ticks += (t2 - t1);
 
 		NCFS_DATA->free_offset[disk_id] = block_no + block_request;
 		NCFS_DATA->free_size[disk_id]
@@ -100,12 +114,22 @@ struct data_block_info Coding4Raid4::encode(const char* buf, int size)
 
 
 		parity_disk_id = disk_total_num - 1;
+        t1 = getticks();
 		retstat = cacheLayer->readDisk(parity_disk_id,buf_read,size_request,block_no*block_size);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
+
 		for (j=0; j < size_request; j++){
 			buf2[j] = buf2[j] ^ buf_read[j];
 		}
 
+        t3 = getticks();
+        NCFS_DATA->encoding_ticks += (t3 - t2);
+
 		retstat = cacheLayer->writeDisk(parity_disk_id,buf2,size,block_no*block_size);
+        t1 = getticks();
+        NCFS_DATA->diskwrite_ticks += (t1 - t3);
+
 		//printf("***raid4: retstat=%d\n",retstat);
 
 		free(buf_read);
@@ -132,8 +156,13 @@ struct data_block_info Coding4Raid4::encode(const char* buf, int size)
  */
 int Coding4Raid4::decode(int disk_id, char* buf, long long size, long long offset)
 {
+    ticks t1, t2;
 	if(NCFS_DATA->disk_status[disk_id] == 0)
-		return cacheLayer->readDisk(disk_id,buf,size,offset);
+        t1 = getticks();
+		int tt = cacheLayer->readDisk(disk_id,buf,size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
+        return tt;
 	else {
 		int retstat;
 		char* temp_buf;
@@ -150,9 +179,14 @@ int Coding4Raid4::decode(int disk_id, char* buf, long long size, long long offse
 					printf("Raid 4 both disk %d and %d are failed\n",disk_id,i);
 					return -1;
 				}
+                t1 = getticks();
 				retstat = cacheLayer->readDisk(i,temp_buf,size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
 				for(j = 0; j < (long long)(size * sizeof(char)/sizeof(int)); ++j)
 					intbuf[j] = intbuf[j] ^ inttemp_buf[j];
+                t1 = getticks();
+        NCFS_DATA->decoding_ticks += (t1 - t2);
 			}
 		}
 		free(temp_buf);
@@ -176,7 +210,8 @@ int Coding4Raid4::recover(int failed_disk_id,char* newdevice)
 	int __recoversize = NCFS_DATA->disk_size[failed_disk_id];
 	int block_size = NCFS_DATA->disk_block_size;
 	char buf[block_size];	
-	
+	ticks t1, t2;
+
 	for(int i = 0; i < __recoversize; ++i){
 	  
 	        //reset the buf data
@@ -185,8 +220,12 @@ int Coding4Raid4::recover(int failed_disk_id,char* newdevice)
 		int offset = i * block_size;
 
 		int retstat = fileSystemLayer->codingLayer->decode(failed_disk_id,buf,block_size,offset);
-
+        
+        t1 = getticks();
 		retstat = cacheLayer->writeDisk(failed_disk_id,buf,block_size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskwrite_ticks += (t2 - t1);
+
 
 	}
 

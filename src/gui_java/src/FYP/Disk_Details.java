@@ -64,6 +64,13 @@ public class Disk_Details extends javax.swing.JPanel {
         Global.sd.SendInt(diskid);
     }
 
+    public void update(){
+        System.out.println("update dpf of disk usage");
+        int i;
+        for(i=0;i<numofchild;i++){
+            request_Update(i);
+        }
+    }
     public void add_Tab(String tab_title, Disk_Details_Child DD){
         //System.out.println("Child Num1 " + numofchild);
         Disk_Details_Tab.addTab(tab_title, DD);

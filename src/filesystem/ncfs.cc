@@ -793,8 +793,8 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 		retstat = ncfs_error("ncfs_write pwrite");
 	else
 		retstat = size;
-
-
+	printf("update disk usage\n");
+	diskusageLayer->SendReport();
 	return retstat;
 }
 

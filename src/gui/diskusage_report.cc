@@ -1,5 +1,5 @@
 #include "diskusage_report.hh"
-
+#include "stdio.h"
 extern ReportLayer *reportLayer;
 extern struct ncfs_state *NCFS_DATA;
 
@@ -54,7 +54,7 @@ void DiskusageReport::SendReport(){
 	for(int i = 0; i < NCFS_DATA->disk_total_num; ++i){
 		if(touched[i])
 			SendOneDisk(ALL,i);
-		touched[i] = false;
+		touched[i] = true;
 	}
 }
 
@@ -66,6 +66,7 @@ void DiskusageReport::ProcessRequest(int id){
 	int diskid;
 	recvn(id,&diskid_n,4);
 	diskid = ntohl(diskid_n);
+	printf("ProcessRequest %d\n",id);
 	SendOneDisk(id,diskid);
 }
 
@@ -84,10 +85,10 @@ void DiskusageReport::SendOneDisk(int target, int diskid){
 	memcpy(&content[10],&freeoffset_n,4);
 	memcpy(&content[14],diskusage[diskid],100);
 	QueneItem __item(target,114,content);
-//	fprintf(stderr,"Disk Usage %d used %d\n",diskid,__usedblock);
-//	for(int i =0; i < 105; ++i)
-//		fprintf(stderr,"%c",content[i] + '0');
-//	fprintf(stderr,"\n");
+	fprintf(stderr,"Disk Usage %d freesize %d\n",diskid,freesize_n);
+	for(int i =0; i < 105; ++i)
+		fprintf(stderr,"%c",content[i] + '0');
+	fprintf(stderr,"\n");
 	reportLayer->AddItem(__item);
 	free(content);
 }

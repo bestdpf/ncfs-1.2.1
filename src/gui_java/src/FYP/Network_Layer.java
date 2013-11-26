@@ -117,6 +117,7 @@ public class Network_Layer {
     }
 
     public void SendByte(byte no){
+        System.out.println("sendbyte now dpf "+no);
         try{
             Outputsd.writeByte(no);
         } catch (IOException e) {

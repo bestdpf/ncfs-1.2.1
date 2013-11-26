@@ -753,6 +753,7 @@ public static boolean check_directory(String line){
             try{
                 if (Global_file_length >= 40960)
                 {
+                   // System.out.println("start my task now");
                     //char_buf = new char[1024];
                     byte_buf = new byte[40960];
                     //Global_file_length = Global_file_length - 1024;
@@ -768,6 +769,7 @@ public static boolean check_directory(String line){
                     try{
                     Global.sd.SendByte((byte)3);
                     Global.sd.SendByte((byte)1);
+                    //Global.DiskDetails.update();
                     Global.sd.SendFully(byte_buf, k, 1024);
                     }
                     finally {
@@ -776,6 +778,7 @@ public static boolean check_directory(String line){
                     Global.ProgressBar.setNumber(Total_length - Global_file_length,
                             (int)((Total_length - Global_file_length)*100/Total_length));
                     }
+                    
                 }
                 else
                 {

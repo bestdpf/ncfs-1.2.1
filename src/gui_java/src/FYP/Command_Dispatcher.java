@@ -26,12 +26,13 @@ public class Command_Dispatcher implements Runnable{
             } catch (IOException e){
                 continue;
             }
-            //System.out.println("inModule " + inModule);
+            System.out.println("inModule " + inModule);
             switch(inModule){
                 case 0:     Global.TopLevelProcess.ProcessHandler();break;
                 case 1:     Global.DiskDetails.ProcessHandler();break;
                 case 2:     Global.RecoveryProcess.ProcessHandler();break;
                 case 3:try {
+                    //Global.DiskDetails.ProcessHandler();
                     Global.ContentBrowser.ProcessHandler();
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Command_Dispatcher.class.getName()).log(Level.SEVERE, null, ex);

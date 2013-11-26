@@ -163,7 +163,7 @@ public class Disk_Details_Overall_Child extends javax.swing.JPanel {
     }
 
     public void setLabel(int id, byte used){
-        System.out.println("id is "+id+" used is "+used);
+        //System.out.println("id is "+id+" used is "+used);
         if(used == 0)label[id].setBackground(new java.awt.Color(255, 0, 255));
         else label[id].setBackground(new java.awt.Color(0, 102, 153));
     }

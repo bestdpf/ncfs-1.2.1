@@ -65,6 +65,7 @@ ncfs_destroy()
 #include <sys/xattr.h>
 
 #include <sys/stat.h>
+#include <time.h>
 
 //ncfs context state
 struct ncfs_state* NCFS_DATA;
@@ -88,6 +89,17 @@ char *bigreadpath;
 long bigreadoffset;
 int bigreadsize;
 
+#include<sys/time.h>
+typedef unsigned long long ticks;
+
+static __inline__ ticks getticks(void)
+{
+     unsigned a, d;
+     asm("cpuid");
+     asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+     return (((ticks)a) | (((ticks)d) << 32));
+}
 // Report errors and give -errno to caller
 int ncfs_error(const char *str)
 {
@@ -614,7 +626,11 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 			if (bigtempbuf_counter <= 0){
 				//printf("******Bigtempbuf full: encode data.\n");
 				temp_size = (bigtempbuf_maxcount - 1)*sysblocksize + size;
+				ticks begin = getticks();
 				temp_block_info = fileSystemLayer->codingLayer->encode(bigtempbuf, temp_size); 
+				ticks during = getticks() - begin;
+				NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
+				printf("Encode Time: %llu\n", during);
 				//cacheLayer->writeFileCache(fi->fh,buf,temp_size,offset);
 				if(temp_block_info.disk_id == -1)
 					return -ENOSPC;
@@ -679,7 +695,11 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 					printf("******Bigwrite Bigtempbuf full: encode data.\n");
 
 					temp_size = (bigtempbuf_maxcount - 1)*sysblocksize + temp_size;
+					ticks begin = getticks();
 					temp_block_info = fileSystemLayer->codingLayer->encode(bigtempbuf, temp_size); 
+					ticks during = getticks() - begin;
+					NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
+					printf("Encode Time: %llu\n", during);
 					//cacheLayer->writeFileCache(fi->fh,buf,temp_size,offset);
 					if(temp_block_info.disk_id == -1)
 						return -ENOSPC;
@@ -736,7 +756,11 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 	else{
 		if (size <= (size_t)block_size){
 			//Original program segment of single-block write:
+			ticks begin = getticks();
 			temp_block_info = fileSystemLayer->codingLayer->encode(buf, size); 
+			ticks during = getticks() - begin;
+			NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
+			printf("Encode Time: %llu\n", during);
 			if(temp_block_info.disk_id == -1)
 				return -ENOSPC;
 			cacheLayer->writeFileCache(fi->fh,buf,size,offset);
@@ -771,7 +795,11 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 
 				memcpy(temp_buf, buf+(size-size_to_write-temp_size)*sizeof(char), temp_size);
 
+			ticks begin = getticks();
 	        	temp_block_info = fileSystemLayer->codingLayer->encode(temp_buf, temp_size); 
+			ticks during = getticks() - begin;
+			NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
+			printf("Encode Time: %llu\n", during);
 				if(temp_block_info.disk_id == -1)
 					return -ENOSPC;
 	        	//cacheLayer->writeFileCache(fi->fh,temp_buf,temp_size,temp_offset);

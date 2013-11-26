@@ -56,6 +56,10 @@ struct ncfs_state {
     int run_experiment;  //1 for running experiment
 
     int process_state;  //0 for normal, 1 for recovery
+    unsigned long long encoding_ticks;
+    unsigned long long decoding_ticks;
+    unsigned long long diskread_ticks;
+    unsigned long long diskwrite_ticks;
     double encoding_time;   //in usec
     double decoding_time;   //in usec
     double diskread_time;   //in usec

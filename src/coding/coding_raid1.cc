@@ -131,20 +131,19 @@ int Coding4Raid1::decode(int disk_id, char* buf, long long size, long long offse
 {
 
     ticks t1,t2;
-	if(NCFS_DATA->disk_status[disk_id] == 0)
+	if(NCFS_DATA->disk_status[disk_id] == 0){
         t1 = getticks();
 		int tt = cacheLayer->readDisk(disk_id,buf,size,offset);
         t2 = getticks();
         NCFS_DATA->diskread_ticks += (t2 - t1);
         return tt;
-	else {
+	}else {
 		int mirror_disk_id = NCFS_DATA->disk_total_num - disk_id - 1;
 		if(NCFS_DATA->disk_status[mirror_disk_id] == 0){
         t1 = getticks();
 		int tt = cacheLayer->readDisk(mirror_disk_id,buf,size,offset);
         t2 = getticks();
         NCFS_DATA->diskread_ticks += (t2 - t1);
-        return tt;
         return tt;
 		} else {
 			printf("Raid 1 both disk %d and mirror disk %d\n",disk_id,mirror_disk_id);

@@ -16,6 +16,13 @@ extern struct ncfs_state* NCFS_DATA;
 extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
 
 /*
  * jbod_encoding: JBOD: non-stripped block allocation  (type=100)
@@ -117,13 +124,13 @@ int Coding4Jbod::decode(int disk_id, char* buf, long long size, long long offset
 {
   
     ticks t1, t2;
-	if(NCFS_DATA->disk_status[disk_id] == 0)
+	if(NCFS_DATA->disk_status[disk_id] == 0){
         t1 = getticks();
 		int tt = cacheLayer->readDisk(disk_id,buf,size,offset);
         t2 = getticks();
         NCFS_DATA->diskread_ticks += (t2 - t1);
         return tt;
-	else {
+	}else {
 		printf("Raid %d: Disk %d failed\n",NCFS_DATA->disk_raid_type,disk_id);
 		return -1;
 	}

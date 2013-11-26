@@ -626,11 +626,7 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 			if (bigtempbuf_counter <= 0){
 				//printf("******Bigtempbuf full: encode data.\n");
 				temp_size = (bigtempbuf_maxcount - 1)*sysblocksize + size;
-				ticks begin = getticks();
 				temp_block_info = fileSystemLayer->codingLayer->encode(bigtempbuf, temp_size); 
-				ticks during = getticks() - begin;
-				NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
-				printf("Encode Time: %llu\n", during);
 				//cacheLayer->writeFileCache(fi->fh,buf,temp_size,offset);
 				if(temp_block_info.disk_id == -1)
 					return -ENOSPC;
@@ -695,11 +691,7 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 					printf("******Bigwrite Bigtempbuf full: encode data.\n");
 
 					temp_size = (bigtempbuf_maxcount - 1)*sysblocksize + temp_size;
-					ticks begin = getticks();
 					temp_block_info = fileSystemLayer->codingLayer->encode(bigtempbuf, temp_size); 
-					ticks during = getticks() - begin;
-					NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
-					printf("Encode Time: %llu\n", during);
 					//cacheLayer->writeFileCache(fi->fh,buf,temp_size,offset);
 					if(temp_block_info.disk_id == -1)
 						return -ENOSPC;
@@ -756,11 +748,7 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 	else{
 		if (size <= (size_t)block_size){
 			//Original program segment of single-block write:
-			ticks begin = getticks();
 			temp_block_info = fileSystemLayer->codingLayer->encode(buf, size); 
-			ticks during = getticks() - begin;
-			NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
-			printf("Encode Time: %llu\n", during);
 			if(temp_block_info.disk_id == -1)
 				return -ENOSPC;
 			cacheLayer->writeFileCache(fi->fh,buf,size,offset);
@@ -795,11 +783,7 @@ int ncfs_write(const char *path, const char *buf, size_t size, off_t offset,
 
 				memcpy(temp_buf, buf+(size-size_to_write-temp_size)*sizeof(char), temp_size);
 
-			ticks begin = getticks();
 	        	temp_block_info = fileSystemLayer->codingLayer->encode(temp_buf, temp_size); 
-			ticks during = getticks() - begin;
-			NCFS_DATA->encoding_ticks = NCFS_DATA->encoding_ticks + during;
-			printf("Encode Time: %llu\n", during);
 				if(temp_block_info.disk_id == -1)
 					return -ENOSPC;
 	        	//cacheLayer->writeFileCache(fi->fh,temp_buf,temp_size,temp_offset);
@@ -902,10 +886,10 @@ int ncfs_release(const char *path, struct fuse_file_info *fi)
 
         FILE *time_file;
 
-        printf("Encoding time: %lf\n",NCFS_DATA->encoding_time);
-        printf("Decoding time: %lf\n",NCFS_DATA->decoding_time);
-        printf("Disk Read time: %lf\n",NCFS_DATA->diskread_time);
-        printf("Disk Write time: %lf\n",NCFS_DATA->diskwrite_time);
+        printf("Encoding time: %lf\n",(double)(NCFS_DATA->encoding_ticks / 1799999));
+        printf("Decoding time: %lf\n",(double)(NCFS_DATA->decoding_ticks / 1799999));
+        printf("Disk Read time: %lf\n",(double)(NCFS_DATA->diskread_ticks / 1799999));
+        printf("Disk Write time: %lf\n",(double)(NCFS_DATA->diskwrite_ticks / 1799999));
 
         //print time measurement counters
         if ((time_file = fopen("time_data","w+")) != NULL){
@@ -1225,10 +1209,10 @@ void ncfs_destroy(void *userdata)
 
 	FILE *time_file;
 
-	printf("Encoding time: %lf\n",NCFS_DATA->encoding_time);
-	printf("Decoding time: %lf\n",NCFS_DATA->decoding_time);
-	printf("Disk Read time: %lf\n",NCFS_DATA->diskread_time);
-	printf("Disk Write time: %lf\n",NCFS_DATA->diskwrite_time);
+        printf("Encoding time: %lf\n",(double)(NCFS_DATA->encoding_ticks / 1799999));
+        printf("Decoding time: %lf\n",(double)(NCFS_DATA->decoding_ticks / 1799999));
+        printf("Disk Read time: %lf\n",(double)(NCFS_DATA->diskread_ticks / 1799999));
+        printf("Disk Write time: %lf\n",(double)(NCFS_DATA->diskwrite_ticks / 1799999));
 
 	//print time measurement counters
 	if ((time_file = fopen("time_data","w+")) != NULL){
@@ -1518,6 +1502,10 @@ int main(int argc, char *argv[])
 	ncfs_data->decoding_time = 0;
 	ncfs_data->diskread_time = 0;
 	ncfs_data->diskwrite_time = 0;
+	ncfs_data->encoding_ticks = 0;
+	ncfs_data->decoding_ticks = 0;
+	ncfs_data->diskread_ticks = 0;
+	ncfs_data->diskwrite_ticks = 0;
 
 	ncfs_data->space_list_num = 0;	//for deletion
 	ncfs_data->space_list_head = NULL;

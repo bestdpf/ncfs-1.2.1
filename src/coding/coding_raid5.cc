@@ -40,8 +40,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 	
 	intbuf=(int *)buf;
 		
-	struct timeval t1, t2, t3, t4, t5, t6;
-	double duration;
+	ticks t1, t2, t3, t4, t5, t6;
 
 	//test print
 	//printf("***get_data_block_no 1: size=%d\n",size);
@@ -106,7 +105,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		intbuf2=(int *)buf2;
 		
                 if (NCFS_DATA->run_experiment == 1){
-                        gettimeofday(&t1,NULL);
+                    t1 = getticks();
                 }
 
 		//Cache Start
@@ -114,7 +113,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		//Cache End
 
 		if (NCFS_DATA->run_experiment == 1){
-                        gettimeofday(&t2,NULL);
+            t2 = getticks();
           	}
 
 
@@ -134,7 +133,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		parity_disk_id = disk_total_num - 1 - (block_no % disk_total_num);
 
                 if (NCFS_DATA->run_experiment == 1){
-                        gettimeofday(&t3,NULL);
+                    t3 = getticks();
                 }
 
 		//Cache Start
@@ -142,7 +141,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		//Cache End
 
                 if (NCFS_DATA->run_experiment == 1){
-                        gettimeofday(&t4,NULL);
+                        t4 = getticks();
                 }
 
 
@@ -155,7 +154,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		}
 		
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t5,NULL);
+            t5 = getticks();
 		}
 
                 //Cache Start
@@ -171,7 +170,7 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		//printf("***raid5: retstat=%d\n",retstat);
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t6,NULL);
+            t6 = getticks();
 		}
 		
 		free(buf_read);
@@ -181,27 +180,17 @@ struct data_block_info Coding4Raid5::encode(const char* buf, int size)
 		if (NCFS_DATA->run_experiment == 1){
 
 			//Disk Read Time
-                        duration = (t2.tv_sec - t1.tv_sec) + 
-                                (t2.tv_usec-t1.tv_usec)/1000000.0;
-                        NCFS_DATA->diskread_time += duration;
+                        NCFS_DATA->diskread_ticks += (t2 - t1);
 
-			duration = (t4.tv_sec - t3.tv_sec) + 
-                                (t4.tv_usec-t3.tv_usec)/1000000.0;
-                        NCFS_DATA->diskread_time += duration;
+                        NCFS_DATA->diskread_ticks += (t4 - t3);
 			
 			//Data Encode Time
-                	duration = (t3.tv_sec - t2.tv_sec) + 
-                                (t3.tv_usec-t2.tv_usec)/1000000.0;
-                	NCFS_DATA->encoding_time += duration;
+                	NCFS_DATA->encoding_ticks += (t3 - t2);
 
-                        duration = (t5.tv_sec - t4.tv_sec) + 
-                                (t5.tv_usec-t4.tv_usec)/1000000.0;
-                        NCFS_DATA->encoding_time += duration;
+                        NCFS_DATA->encoding_ticks += (t5 - t4);
 
 			//Disk Write Time
-                        duration = (t6.tv_sec - t5.tv_sec) + 
-                                (t6.tv_usec-t5.tv_usec)/1000000.0;
-                        NCFS_DATA->diskwrite_time += duration;
+                        NCFS_DATA->diskwrite_ticks += (t6 - t5);
 		}
 	}
 
@@ -228,22 +217,19 @@ int Coding4Raid5::decode(int disk_id, char* buf, long long size, long long offse
 {
  
 	int retstat;
-        struct timeval t1, t2, t3;
-        double duration;
+        ticks t1, t2, t3;
 
 	if(NCFS_DATA->disk_status[disk_id] == 0){
                 if (NCFS_DATA->run_experiment == 1){
-                	gettimeofday(&t1,NULL);
+                    t1 = getticks();
                 }
 
 		retstat = cacheLayer->readDisk(disk_id,buf,size,offset);
 
                 if (NCFS_DATA->run_experiment == 1){
-                	gettimeofday(&t2,NULL);
+                    t2 = getticks();
 
-                	duration = (t2.tv_sec - t1.tv_sec) + 
-                        	(t2.tv_usec-t1.tv_usec)/1000000.0;
-                        NCFS_DATA->diskread_time += duration;
+                        NCFS_DATA->diskread_ticks += (t2 - t1);
                 }
 
 		return retstat;
@@ -267,28 +253,24 @@ int Coding4Raid5::decode(int disk_id, char* buf, long long size, long long offse
 				}
 
 				if (NCFS_DATA->run_experiment == 1){
-                                	gettimeofday(&t1,NULL);
+                    t1 = getticks();
                         	}
 
 				retstat = cacheLayer->readDisk(i,temp_buf,size,offset);
 
 				if (NCFS_DATA->run_experiment == 1){
-                                	gettimeofday(&t2,NULL);
+                                    t2 = getticks();
                         	}
 
 				for(j = 0; j < (long long)(size * sizeof(char) / sizeof(int)); ++j)
 					intbuf[j] = intbuf[j] ^ inttemp_buf[j];
 
 				if (NCFS_DATA->run_experiment == 1){
-                                	gettimeofday(&t3,NULL);
+                    t3 = getticks();
 
-                                	duration = (t2.tv_sec - t1.tv_sec) + 
-                                       		(t2.tv_usec-t1.tv_usec)/1000000.0;
-                                	NCFS_DATA->diskread_time += duration;
+                                	NCFS_DATA->diskread_ticks += (t2 - t1);
 
-                                	duration = (t3.tv_sec - t2.tv_sec) + 
-                                        	(t3.tv_usec-t2.tv_usec)/1000000.0;
-                                	NCFS_DATA->decoding_time += duration;
+                                	NCFS_DATA->decoding_ticks += (t3 - t2);
                         	}
 			}
 		}
@@ -314,8 +296,7 @@ int Coding4Raid5::recover(int failed_disk_id,char* newdevice){
 	int block_size = NCFS_DATA->disk_block_size;
 	char* buf = (char*)malloc(sizeof(char)*block_size);
 	
-	struct timeval t1, t2;
-        double duration;
+	ticks t1, t2;
 	
 	for(int i = 0; i < __recoversize; ++i){
 	  
@@ -327,17 +308,14 @@ int Coding4Raid5::recover(int failed_disk_id,char* newdevice){
 		int retstat = fileSystemLayer->codingLayer->decode(failed_disk_id,buf,block_size,offset);
 
 		if (NCFS_DATA->run_experiment == 1){
-                      	gettimeofday(&t1,NULL);
+            t1 = getticks();
                 }
 		retstat = cacheLayer->writeDisk(failed_disk_id,buf,block_size,offset);
 
 		if (NCFS_DATA->run_experiment == 1){
 		  
-                        gettimeofday(&t2,NULL);
-
-                        duration = (t2.tv_sec - t1.tv_sec) + 
-                                     (t2.tv_usec-t1.tv_usec)/1000000.0;
-                        NCFS_DATA->diskwrite_time += duration;
+                        t2 = getticks();
+                        NCFS_DATA->diskwrite_ticks += (t2 - t1);
 
                 }
                 

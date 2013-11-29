@@ -17,6 +17,13 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+        unsigned a, d;
+            asm("cpuid");
+                asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+                    return (((ticks)a) | (((ticks)d) << 32));
+}
 /*
  * raid0_encoding: RAID 0: stripped block allocation (type=0)
  *
@@ -43,6 +50,7 @@ struct data_block_info Coding4Raid0::encode(const char* buf, int size)
 
 	size_request = fileSystemLayer->round_to_block_size(size);
 	block_request = size_request / block_size;
+    ticks t1, t2;
 
 	//test print
 	//printf("***get_data_block_no 2: size_request=%d, block_request=%d\n"
@@ -67,6 +75,7 @@ struct data_block_info Coding4Raid0::encode(const char* buf, int size)
 
 
 	//get block from space_list if no free block available
+	printf("afasdfadfsadfasfsfasdfasdf\n");
 	if (disk_id == -1){
 		//printf("***raid0: get_space_list: list_num=%d\n",NCFS_DATA->space_list_num);
 		if (NCFS_DATA->space_list_head != NULL){
@@ -83,7 +92,10 @@ struct data_block_info Coding4Raid0::encode(const char* buf, int size)
 	}
 	else{
 		//Cache Start
+        t1 = getticks();
 		retstat = cacheLayer->writeDisk(disk_id,buf,size,block_no*block_size);
+        t2 = getticks();
+        NCFS_DATA->diskwrite_ticks += (t2 - t1);
 
 		NCFS_DATA->free_offset[disk_id] = block_no + block_request;
 		NCFS_DATA->free_size[disk_id]
@@ -112,9 +124,14 @@ struct data_block_info Coding4Raid0::encode(const char* buf, int size)
  */
 int Coding4Raid0::decode(int disk_id, char* buf, long long size, long long offset)
 {
-	if(NCFS_DATA->disk_status[disk_id] == 0)
-		return cacheLayer->readDisk(disk_id,buf,size,offset);
-	else {
+    ticks t1,t2;
+	if(NCFS_DATA->disk_status[disk_id] == 0){
+        t1 = getticks();
+		int tt = cacheLayer->readDisk(disk_id,buf,size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
+        return tt;
+	}else {
 		printf("Raid %d: Disk %d failed\n",NCFS_DATA->disk_raid_type,disk_id);
 		return -1;
 	}

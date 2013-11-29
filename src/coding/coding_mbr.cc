@@ -23,6 +23,14 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
+
 /*
  * Constructor funcation for MBR
  *
@@ -250,8 +258,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 	int mbr_code_block_id;
 	int dup_disk_id, dup_block_no, code_disk_id, code_block_no;
 
-	struct timeval t1, t2, t3;
-	double duration;
+    ticks t1, t2, t3;
 
 	mbr_segment_size = NCFS_DATA->mbr_segment_size;
 
@@ -321,7 +328,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 		if (NCFS_DATA->mbr_c > 0){
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t1,NULL);
+                t1 = getticks();
 			}
 
 			//Cache Start
@@ -329,7 +336,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 			//Cache End
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t2,NULL);
+                t2 = getticks();
 			}
 
 			for (j=0; j < size_request; j++){
@@ -337,15 +344,10 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 			}
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t3,NULL);
+                t3 = getticks();
 
-				duration = (t2.tv_sec - t1.tv_sec) + 
-					(t2.tv_usec-t1.tv_usec)/1000000.0;
-				NCFS_DATA->diskread_time += duration;
-
-				duration = (t3.tv_sec - t2.tv_sec) + 
-					(t3.tv_usec-t2.tv_usec)/1000000.0;
-				NCFS_DATA->encoding_time += duration;
+                NCFS_DATA->diskread_ticks += (t2 - t1);
+                NCFS_DATA->encoding_ticks += (t3 - t2);
 			}
 		}
 
@@ -354,7 +356,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 			= NCFS_DATA->free_size[disk_id] - block_request;
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t1,NULL);
+            t1 = getticks();
 		}
 
 		//write duplicated block
@@ -368,7 +370,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 		dup_block_no = dup_block_no + mbr_segment_id * mbr_segment_size;
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t2,NULL);
+            t2 = getticks();
 		}
 
 		//Cache Start
@@ -379,15 +381,10 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 		//Cache End
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t3,NULL);
+            t3 = getticks();
 
-			duration = (t2.tv_sec - t1.tv_sec) + 
-				(t2.tv_usec-t1.tv_usec)/1000000.0;
-			NCFS_DATA->encoding_time += duration;
-
-			duration = (t3.tv_sec - t2.tv_sec) + 
-				(t3.tv_usec-t2.tv_usec)/1000000.0;
-			NCFS_DATA->diskwrite_time += duration;
+            NCFS_DATA->encoding_ticks += (t2 - t1);
+            NCFS_DATA->diskwrite_ticks += (t3 - t2);
 		}
 
 
@@ -420,7 +417,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t1,NULL);
+                t1 = getticks();
 			}
 
 			//Cache Start
@@ -430,7 +427,7 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t2,NULL);
+                t2 = getticks();
 			}
 
 
@@ -446,19 +443,14 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 			}
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t3,NULL);
+                t3 = getticks();
 
-				duration = (t2.tv_sec - t1.tv_sec) + 
-					(t2.tv_usec-t1.tv_usec)/1000000.0;
-				NCFS_DATA->diskread_time += duration;
-
-				duration = (t3.tv_sec - t2.tv_sec) + 
-					(t3.tv_usec-t2.tv_usec)/1000000.0;
-				NCFS_DATA->encoding_time += duration;
+                NCFS_DATA->diskread_ticks += (t2 - t1);
+                NCFS_DATA->encoding_ticks += (t3 - t2);
 			}
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t1,NULL);
+                t1 = getticks();
 			}
 
 			// Cache Start
@@ -469,11 +461,9 @@ struct data_block_info Coding4Mbr::encode(const char* buf, int size)
 			// Cache End
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t2,NULL);
+                t2 = getticks();
 
-				duration = (t2.tv_sec - t1.tv_sec) + 
-					(t2.tv_usec-t1.tv_usec)/1000000.0;
-				NCFS_DATA->diskwrite_time += duration;
+                NCFS_DATA->diskwrite_ticks += (t2 - t1);
 			}
 
 		}
@@ -508,22 +498,19 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 {
 
 	int retstat;
-	struct timeval t1, t2, t3, t4;
-	double duration;
+	ticks t1, t2, t3, t4;
 
 	if(NCFS_DATA->disk_status[disk_id] == 0){
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t1,NULL);
+            t1 = getticks();
 		}
 
 		retstat = cacheLayer->readDisk(disk_id,buf,size,offset);
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t2,NULL);
+            t2 = getticks();
 
-			duration = (t2.tv_sec - t1.tv_sec) + 
-				(t2.tv_usec-t1.tv_usec)/1000000.0;
-			NCFS_DATA->diskread_time += duration;
+			NCFS_DATA->diskread_ticks += (t2 - t1);
 		}
 
 		return retstat;
@@ -581,7 +568,7 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 		mbr_segment_id = (int)(block_no / mbr_segment_size);
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t1,NULL);
+            t1 = getticks();
 		}
 
 		flag_dup = 0;
@@ -603,11 +590,9 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 		}
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t2,NULL);
+            t2 = getticks();
 
-			duration = (t2.tv_sec - t1.tv_sec) +
-				(t2.tv_usec-t1.tv_usec)/1000000.0;
-			NCFS_DATA->decoding_time += duration;
+			NCFS_DATA->decoding_ticks += (t2 - t1);
 		}
 
 
@@ -615,7 +600,7 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 		if(NCFS_DATA->disk_status[dup_disk_id] == 1){
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t1,NULL);
+                t1 = getticks();
 			}
 
 			//record the disk health information
@@ -656,11 +641,9 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t2,NULL);
+                t2 = getticks();
 
-				duration = (t2.tv_sec - t1.tv_sec) +
-					(t2.tv_usec-t1.tv_usec)/1000000.0;
-				NCFS_DATA->decoding_time += duration;
+				NCFS_DATA->decoding_ticks += (t2 - t1);
 			}
 
 
@@ -669,7 +652,7 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 			{
 
 				if (NCFS_DATA->run_experiment == 1){
-					gettimeofday(&t1,NULL);
+                    t1 = getticks();
 				}
 
 				memset(temp_buf, 0, size);
@@ -697,13 +680,13 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 				offset_read = (long long)(temp_block_no * (NCFS_DATA->disk_block_size));
 
 				if (NCFS_DATA->run_experiment == 1){
-					gettimeofday(&t2,NULL);
+                    t2 = getticks();
 				}
 
 				retstat = cacheLayer->readDisk(temp_disk_id,temp_buf,size,offset_read);
 
 				if (NCFS_DATA->run_experiment == 1){
-					gettimeofday(&t3,NULL);
+                    t3 = getticks();
 				}
 
 
@@ -720,16 +703,13 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 				}
 
 				if (NCFS_DATA->run_experiment == 1){
-					gettimeofday(&t4,NULL);
+                    t4 = getticks();
 
-					duration = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/1000000.0;
-					NCFS_DATA->decoding_time += duration;
+					NCFS_DATA->decoding_ticks += (t2 - t1);
 
-					duration = (t3.tv_sec - t2.tv_sec) + (t3.tv_usec-t2.tv_usec)/1000000.0;
-					NCFS_DATA->diskread_time += duration;
+					NCFS_DATA->diskread_ticks += (t3 - t2);
 
-					duration = (t4.tv_sec - t3.tv_sec) +(t4.tv_usec-t3.tv_usec)/1000000.0;
-					NCFS_DATA->decoding_time += duration;
+					NCFS_DATA->decoding_ticks += (t4 - t3);
 				} 
 
 			}
@@ -741,17 +721,15 @@ int Coding4Mbr::decode(int disk_id, char* buf, long long size, long long offset)
 			offset_read = (long long)(dup_block_no * (NCFS_DATA->disk_block_size));
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t1,NULL);
+                t1 = getticks();             
 			}
 
 			retstat = cacheLayer->readDisk(dup_disk_id,buf,size,offset_read);
 
 			if (NCFS_DATA->run_experiment == 1){
-				gettimeofday(&t2,NULL);
+                t2 = getticks();
 
-				duration = (t2.tv_sec - t1.tv_sec) +
-					(t2.tv_usec-t1.tv_usec)/1000000.0;
-				NCFS_DATA->diskread_time += duration;
+				NCFS_DATA->diskread_ticks += (t2 - t1);
 			}
 
 			return retstat;
@@ -785,8 +763,7 @@ int Coding4Mbr::recover(int failed_disk_id,char* newdevice)
 	int block_size = NCFS_DATA->disk_block_size;
 	char buf[block_size];	
 
-	struct timeval t1, t2;
-	double duration;
+	ticks t1, t2;
 
 	for(int i = 0; i < __recoversize; ++i){
 
@@ -798,17 +775,14 @@ int Coding4Mbr::recover(int failed_disk_id,char* newdevice)
 		int retstat = fileSystemLayer->codingLayer->decode(failed_disk_id,buf,block_size,offset);
 
 		if (NCFS_DATA->run_experiment == 1){
-			gettimeofday(&t1,NULL);
+            t1 = getticks();
 		}
 		retstat = cacheLayer->writeDisk(failed_disk_id,buf,block_size,offset);
 
 		if (NCFS_DATA->run_experiment == 1){
+            t2 = getticks();
 
-			gettimeofday(&t2,NULL);
-
-			duration = (t2.tv_sec - t1.tv_sec) + 
-				(t2.tv_usec-t1.tv_usec)/1000000.0;
-			NCFS_DATA->diskwrite_time += duration;
+			NCFS_DATA->diskwrite_ticks += (t2 - t1);
 
 		}
 	}

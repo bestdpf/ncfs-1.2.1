@@ -16,6 +16,13 @@ extern struct ncfs_state* NCFS_DATA;
 extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
 
 /*
  * jbod_encoding: JBOD: non-stripped block allocation  (type=100)
@@ -75,14 +82,18 @@ struct data_block_info Coding4Jbod::encode(const char* buf, int size)
 	}
 
 
+    ticks t1, t2;
 	if (disk_id == -1){
 		printf("***get_data_block_no: ERROR disk_id = -1\n");
 	}
 	else{
 		//Cache Start
+        t1 = getticks();
 
 		retstat = cacheLayer->writeDisk(disk_id,buf,size,block_no*block_size);
+        t2 = getticks();
 
+        NCFS_DATA->diskwrite_ticks += (t2 - t1);
 		NCFS_DATA->free_offset[disk_id] = block_no + block_request;
 		NCFS_DATA->free_size[disk_id]
 			= NCFS_DATA->free_size[disk_id] - block_request;
@@ -112,9 +123,14 @@ struct data_block_info Coding4Jbod::encode(const char* buf, int size)
 int Coding4Jbod::decode(int disk_id, char* buf, long long size, long long offset)
 {
   
-	if(NCFS_DATA->disk_status[disk_id] == 0)
-		return cacheLayer->readDisk(disk_id,buf,size,offset);
-	else {
+    ticks t1, t2;
+	if(NCFS_DATA->disk_status[disk_id] == 0){
+        t1 = getticks();
+		int tt = cacheLayer->readDisk(disk_id,buf,size,offset);
+        t2 = getticks();
+        NCFS_DATA->diskread_ticks += (t2 - t1);
+        return tt;
+	}else {
 		printf("Raid %d: Disk %d failed\n",NCFS_DATA->disk_raid_type,disk_id);
 		return -1;
 	}

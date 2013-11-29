@@ -31,6 +31,14 @@ extern FileSystemLayer* fileSystemLayer;
 extern CacheLayer* cacheLayer;
 extern DiskusageReport* diskusageLayer;
 
+static __inline__ ticks getticks(void) {
+    unsigned a, d;
+    asm("cpuid");
+    asm volatile("rdtsc" : "=a" (a), "=d" (d));
+
+    return (((ticks)a) | (((ticks)d) << 32));
+}
+
 /*
  * Constructor for Reed Solomon
  */
@@ -296,7 +304,7 @@ int Coding4SrcRS::decode(int disk_id, char* buf, long long size, long long offse
 		return retstat;
 	}else{
 
-		struct timeval starttime, endtime;
+        ticks t1, t2;
 
 		char* temp_buf;
 		char* buf_temp;
@@ -376,29 +384,27 @@ int Coding4SrcRS::decode(int disk_id, char* buf, long long size, long long offse
 					break;
 				}
 
-				gettimeofday(&starttime,NULL);
+                t1 = getticks();
 
 				retstat = cacheLayer->readDisk(src_disk_to_read,buf_read,size,src_block_to_read*NCFS_DATA->disk_block_size);
 
-				gettimeofday(&endtime,NULL);
+                t2 = getticks();
 
-				NCFS_DATA->diskread_time=NCFS_DATA->diskread_time+
-					endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+				NCFS_DATA->diskread_ticks = (t2 - t1);
 
 				if(retstat < size){
 					available = false;
 					break;
 				}
-				gettimeofday(&starttime,NULL);
+                t1 = getticks();
 				//for(int j = 0; j < size; ++j){
 				for(long long j = 0; j < (long long)(size * sizeof(char) / sizeof(int)); ++j){
 					//	buf_code[j] = buf_code[j] ^ buf_read[j];
 					intbuf_code[j] = intbuf_code[j] ^ intbuf_read[j];
 				}
-				gettimeofday(&endtime,NULL);
+                t2 = getticks();
 
-				NCFS_DATA->encoding_time=NCFS_DATA->encoding_time+
-					endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+				NCFS_DATA->encoding_ticks = (t2 - t1);
 			}
 		}
 
@@ -460,17 +466,16 @@ int Coding4SrcRS::decode(int disk_id, char* buf, long long size, long long offse
 
 			int efficient=decoding_matrix[data_disk_num*disk_id+i];
 
-			gettimeofday(&starttime,NULL);
+            t1 = getticks();
 
 			//processed data block
 			retstat = cacheLayer->readDisk(dm_ids[i],temp_buf,size,diskblocklocation+src_offset);
 
-			gettimeofday(&endtime,NULL);
+            t2 = getticks();
 
-			NCFS_DATA->diskread_time=NCFS_DATA->diskread_time+
-				endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+			NCFS_DATA->diskread_ticks = (t2 - t1);
 
-			gettimeofday(&starttime,NULL);
+            t1 = getticks();
 
 			for (j=0; j < size; j++){
 				buf_temp[j]=galois_single_multiply((unsigned char)temp_buf[j],efficient,field_power);
@@ -480,10 +485,9 @@ int Coding4SrcRS::decode(int disk_id, char* buf, long long size, long long offse
 				intbuf[j] = intbuf[j] ^ intbuf_temp[j];
 			}
 
-			gettimeofday(&endtime,NULL);
+            t2 = getticks();
 
-			NCFS_DATA->encoding_time=NCFS_DATA->encoding_time+
-				endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+			NCFS_DATA->encoding_ticks = (t2 - t1);
 
 			memset(temp_buf, 0, size);
 
@@ -550,7 +554,7 @@ int Coding4SrcRS::recover_conventional(int failed_disk_id, char* newdevice){
 	char* buf_code = (char*)malloc(sizeof(char) * block_size);
 	int* intbuf_code = (int*)buf_code;
 
-	struct timeval starttime, endtime;
+    ticks t1, t2;
 
 	for(int i = 0; i < __recoversize; ++i){
 
@@ -564,32 +568,29 @@ int Coding4SrcRS::recover_conventional(int failed_disk_id, char* newdevice){
 			for(int j = 0; j < src_f; ++j){
 				--src_block_to_read;
 				src_disk_to_read = (src_disk_to_read + 1) % (NCFS_DATA->disk_total_num);
-				gettimeofday(&starttime,NULL);
+                t1 = getticks();
 
 				cacheLayer->readDisk(src_disk_to_read,buf_code,block_size,src_block_to_read*block_size);
 
-				gettimeofday(&endtime,NULL);
+                t2 = getticks();
 
-				NCFS_DATA->diskread_time=NCFS_DATA->diskread_time+
-					endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+				NCFS_DATA->diskread_ticks = (t2 - t1);
 
-				gettimeofday(&starttime,NULL);
+                t1 = getticks();
 
 				for(long long cnt = 0; cnt < (long long)(block_size * sizeof(char) / sizeof(int)); ++cnt){
 					intbuf[cnt] = intbuf[cnt] ^ intbuf_code[cnt];
 				}
 
-				gettimeofday(&endtime,NULL);
-				NCFS_DATA->encoding_time=NCFS_DATA->encoding_time+
-					endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+                t2 = getticks();
+				NCFS_DATA->encoding_ticks = (t2 - t1);
 			}
-			gettimeofday(&starttime,NULL);
+            t1 = getticks();
 
 			cacheLayer->writeDisk(failed_disk_id,buf,block_size,(i + (i+1) / src_f) * block_size);
 
-			gettimeofday(&endtime,NULL);
-			NCFS_DATA->diskwrite_time=NCFS_DATA->diskwrite_time+
-				endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+            t2 = getticks();
+			NCFS_DATA->diskwrite_ticks = (t2 - t1);
 
 		}
 
@@ -598,14 +599,13 @@ int Coding4SrcRS::recover_conventional(int failed_disk_id, char* newdevice){
 
 		int retstat = fileSystemLayer->codingLayer->decode(failed_disk_id,buf,block_size,offset);
 
-		gettimeofday(&starttime,NULL);
+        t1 = getticks();
 
 		retstat = cacheLayer->writeDisk(failed_disk_id,buf,block_size,offset+src_offset);
 
-		gettimeofday(&endtime,NULL);
+        t2 = getticks();
 
-		NCFS_DATA->diskwrite_time=NCFS_DATA->diskwrite_time+
-			endtime.tv_sec-starttime.tv_sec+(endtime.tv_usec - starttime.tv_usec)/1000000.0;
+		NCFS_DATA->diskwrite_ticks = (t2 - t1);
 
 
 	}

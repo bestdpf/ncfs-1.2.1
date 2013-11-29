@@ -4,13 +4,13 @@
 		<Setting>
 			<NoCache>1</NoCache>
 			<NoGui>0</NoGui>
-			<Experiment>0</Experiment>
+			<Experiment>1</Experiment>
 		</Setting>
 		<Disk>
 			<TotalDiskNumber>4</TotalDiskNumber>
 			<DataDiskNumber>3</DataDiskNumber>
 			<BlockSize>4096</BlockSize>
-			<RaidType>6</RaidType>
+			<RaidType>5</RaidType>
 			<OperationMode>0</OperationMode>
 			<Src>
 				<SrcF>2</SrcF>

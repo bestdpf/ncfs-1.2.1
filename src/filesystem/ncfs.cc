@@ -878,6 +878,7 @@ int ncfs_release(const char *path, struct fuse_file_info *fi)
         printf("Decoding time: %lf\n",NCFS_DATA->decoding_time);
         printf("Disk Read time: %lf\n",NCFS_DATA->diskread_time);
         printf("Disk Write time: %lf\n",NCFS_DATA->diskwrite_time);
+        printf("Disk Write ticks: %llu\n",NCFS_DATA->diskwrite_ticks);
 
         //print time measurement counters
         if ((time_file = fopen("time_data","w+")) != NULL){
@@ -885,6 +886,7 @@ int ncfs_release(const char *path, struct fuse_file_info *fi)
                 fprintf(time_file,"Decoding time: %lf\n",NCFS_DATA->decoding_time);
                 fprintf(time_file,"Disk Read time: %lf\n",NCFS_DATA->diskread_time);
                 fprintf(time_file,"Disk Write time: %lf\n",NCFS_DATA->diskwrite_time);
+                fprintf(time_file,"Disk Write ticks: %llu\n",NCFS_DATA->diskwrite_ticks);
                 fclose(time_file);
         }
 
@@ -1203,7 +1205,7 @@ void ncfs_destroy(void *userdata)
 	printf("Disk Write time: %lf\n",NCFS_DATA->diskwrite_time);
 
 	//print time measurement counters
-	if ((time_file = fopen("time_data","w+")) != NULL){
+	if ((time_file = fopen("time_data_des","w+")) != NULL){
 		fprintf(time_file,"Encoding time: %lf\n",NCFS_DATA->encoding_time);
 		fprintf(time_file,"Decoding time: %lf\n",NCFS_DATA->decoding_time);
 		fprintf(time_file,"Disk Read time: %lf\n",NCFS_DATA->diskread_time);

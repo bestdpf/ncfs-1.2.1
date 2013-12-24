@@ -32,9 +32,9 @@ public class Login extends javax.swing.JFrame {
 
     /** Creates new form FYP_GUI */
     public Login() {
-        setTitle("FYP GUI Login");
+        setTitle("TEST GUI Login");
         initComponents();
-        LoginWord.setText("fyp");
+        LoginWord.setText("dpf");
         PasswordWord.setText("123");
 
         LoginWord.requestFocusInWindow();
@@ -291,7 +291,7 @@ public class Login extends javax.swing.JFrame {
     private void LoginWordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_LoginWordActionPerformed
         // TODO add your handling code here:
         String password = new String(PasswordWord.getPassword());
-        if (LoginWord.getText().equals("fyp"))
+        if (LoginWord.getText().equals("dpf"))
         {
             if (password.equals("123"))
             {
@@ -322,7 +322,7 @@ public class Login extends javax.swing.JFrame {
     private void LoginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_LoginButtonActionPerformed
         // TODO add your handling code here:
         String password = new String(PasswordWord.getPassword());
-        if (LoginWord.getText().equals("fyp"))
+        if (LoginWord.getText().equals("dpf"))
         {
             if (password.equals("123"))
             {
@@ -358,7 +358,7 @@ public class Login extends javax.swing.JFrame {
     private void PasswordWordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PasswordWordActionPerformed
         // TODO add your handling code here:
         String password = new String(PasswordWord.getPassword());
-        if (LoginWord.getText().equals("fyp"))
+        if (LoginWord.getText().equals("dpf"))
         {
             if (password.equals("123"))
             {
@@ -384,7 +384,7 @@ public class Login extends javax.swing.JFrame {
     private void IPWordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_IPWordActionPerformed
         // TODO add your handling code here:
         String password = new String(PasswordWord.getPassword());
-        if (LoginWord.getText().equals("fyp"))
+        if (LoginWord.getText().equals("dpf"))
         {
             if (password.equals("123"))
             {

@@ -27,7 +27,7 @@ public class FYP_GUI extends javax.swing.JFrame {
         //super(parent, modal);
         super();
         
-        setTitle("FYP GUI");
+        setTitle("TEST GUI");
         initComponents();
         
         Global.Wel = new Welcome(this, true);
